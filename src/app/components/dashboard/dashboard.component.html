@@ -1,0 +1,124 @@
+<div class="dashboard-wrapper">
+  <nav class="top-nav">
+    <div class="nav-container">
+      <div class="logo">💰 FinanzasPro</div>
+      <div class="user-area">
+        <select class="account-selector" [(ngModel)]="cuentaSeleccionadaId" (change)="cargarMovimientos()">
+          <option [value]="null">🌍 Todas las cuentas</option>
+          <option *ngFor="let c of cuentas" [value]="c.id">🏦 {{ c.nombre }}</option>
+        </select>
+        <button (click)="logout()" class="btn-logout">Salir</button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <details class="card quick-add">
+      <summary>🚀 Nuevo Movimiento Rápido</summary>
+      <div class="quick-add-grid">
+        <div class="f-field"><label>Cuenta</label>
+          <select [(ngModel)]="movimientoSeleccionado.cuenta_id">
+            <option *ngFor="let c of cuentas" [value]="c.id">{{ c.nombre }}</option>
+          </select>
+        </div>
+        <div class="f-field"><label>Fecha</label><input type="date" [(ngModel)]="movimientoSeleccionado.fecha"></div>
+        <div class="f-field"><label>Concepto</label><input type="text" [(ngModel)]="movimientoSeleccionado.concepto"></div>
+        <div class="f-field"><label>Importe</label><input type="number" [(ngModel)]="movimientoSeleccionado.importe"></div>
+        <div class="f-field"><label>Categoría</label>
+          <select [(ngModel)]="movimientoSeleccionado.categoria_id">
+            <option [value]="null">General</option>
+            <option *ngFor="let cat of categoriasDB" [value]="cat.id">{{ cat.nombre }}</option>
+          </select>
+        </div>
+        <button class="btn-primary" (click)="guardarMovimientoRapido()">Guardar</button>
+      </div>
+    </details>
+
+    <div class="charts-grid">
+      <div class="card"><h3>Tendencia Reciente</h3><canvas #barChart></canvas></div>
+      <div class="card"><h3>Gastos por Categoría</h3><canvas #pieChart></canvas></div>
+    </div>
+
+    <div class="management-grid">
+      <div class="card">
+        <h3>🏦 Mis Cuentas</h3>
+        <div class="input-group"><input type="text" [(ngModel)]="nuevaCuentaNombre" placeholder="Nueva..."><button (click)="crearCuenta()">+</button></div>
+        <div class="pill-list"><span class="pill" *ngFor="let c of cuentas">{{ c.nombre }} <b (click)="eliminarCuenta(c.id)">✕</b></span></div>
+      </div>
+      <div class="card">
+        <h3>🏷️ Mis Categorías</h3>
+        <div class="input-group"><input type="text" [(ngModel)]="nuevaCategoriaNombre" placeholder="Nueva..."><button (click)="crearCategoria()">+</button></div>
+        <div class="pill-list"><span class="pill" *ngFor="let cat of categoriasDB">{{ cat.nombre }} <b (click)="eliminarCategoria(cat.id)">✕</b></span></div>
+      </div>
+    </div>
+
+    <div class="card filters-panel">
+      <h3>🔍 Filtros de Búsqueda</h3>
+      <div class="filters-grid">
+        <div class="f-field"><label>Concepto</label><input type="text" [(ngModel)]="filtros.concepto" (input)="aplicarFiltros()"></div>
+        <div class="f-field"><label>Categoría</label>
+          <select [(ngModel)]="filtros.categoria" (change)="aplicarFiltros()">
+            <option value="">Todas</option>
+            <option *ngFor="let cat of categoriasDB" [value]="cat.id">{{ cat.nombre }}</option>
+          </select>
+        </div>
+        <div class="f-field"><label>Tipo</label>
+          <select [(ngModel)]="filtros.tipo" (change)="aplicarFiltros()">
+            <option value="">Todos</option><option value="ingreso">Ingresos</option><option value="gasto">Gastos</option>
+          </select>
+        </div>
+        <div class="f-field"><label>Importe Máx €</label><input type="number" [(ngModel)]="filtros.maxPrecio" (input)="aplicarFiltros()"></div>
+      </div>
+      <button class="btn-text" (click)="limpiarFiltros()">Limpiar Filtros</button>
+    </div>
+
+    <div class="card table-card">
+      <div class="header-table">
+        <label for="csv-upload" class="btn-outline">📥 Importar CSV Imagin</label>
+        <input type="file" (change)="onFileSelected($event)" accept=".csv" id="csv-upload" hidden>
+      </div>
+      <table>
+        <thead><tr><th>Fecha</th><th>Cuenta</th><th>Concepto</th><th>Categoría</th><th class="text-right">Importe</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let m of movimientosFiltrados">
+            <td>{{ m.fecha | date:'dd/MM/yyyy' }}</td>
+            <td><span class="badge-account">{{ m.cuentas?.nombre }}</span></td>
+            <td>{{ m.concepto }}</td>
+            <td><span class="badge">{{ m.categorias?.nombre || 'General' }}</span></td>
+            <td class="text-right" [ngClass]="m.importe > 0 ? 'text-success' : 'text-danger'"><strong>{{ m.importe | number:'1.2-2' }}€</strong></td>
+            <td><button (click)="abrirEditor(m)" class="btn-icon">✏️</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" [class.visible]="mostrarImportadorCSV">
+  <div class="modal">
+    <h3>📥 Selecciona cuenta destino</h3>
+    <select [(ngModel)]="cuentaParaCSV" class="full-select">
+      <option *ngFor="let c of cuentas" [value]="c.id">{{ c.nombre }}</option>
+    </select>
+    <button class="btn-primary full" (click)="procesarCSV()">Importar Datos</button>
+    <button class="btn-text full" (click)="mostrarImportadorCSV = false">Cancelar</button>
+  </div>
+</div>
+
+<div class="overlay" [class.visible]="mostrarEditor" (click)="mostrarEditor = false"></div>
+<div class="sidenav" [class.open]="mostrarEditor">
+  <h3>Editar Registro</h3>
+  <div class="sidenav-content" *ngIf="movimientoSeleccionado">
+    <div class="field"><label>Fecha</label><input type="date" [(ngModel)]="movimientoSeleccionado.fecha"></div>
+    <div class="field"><label>Concepto</label><input type="text" [(ngModel)]="movimientoSeleccionado.concepto"></div>
+    <div class="field"><label>Importe</label><input type="number" [(ngModel)]="movimientoSeleccionado.importe"></div>
+    <div class="field"><label>Categoría</label>
+      <select [(ngModel)]="movimientoSeleccionado.categoria_id">
+        <option [value]="null">General</option>
+        <option *ngFor="let cat of categoriasDB" [value]="cat.id">{{ cat.nombre }}</option>
+      </select>
+    </div>
+    <button class="btn-primary full" (click)="guardarEdicion()">Guardar</button>
+    <button class="btn-danger-outline full" (click)="eliminarMovimiento()">Eliminar</button>
+  </div>
+</div>
