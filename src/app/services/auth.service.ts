@@ -9,7 +9,28 @@ export class AuthService {
   private supabase: SupabaseClient;
 
   constructor() {
-    this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey);
+    this.supabase = createClient(environment.supabaseUrl, environment.supabaseKey, {
+      auth: {
+        storage: {
+          getItem: (key: string) => {
+            try {
+              return JSON.parse(localStorage.getItem(key) ?? 'null');
+            } catch {
+              return null;
+            }
+          },
+          setItem: (key: string, value: string) => {
+            localStorage.setItem(key, JSON.stringify(value));
+          },
+          removeItem: (key: string) => {
+            localStorage.removeItem(key);
+          },
+        },
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: false,
+      },
+    });
   }
 
   // Registro de nuevo usuario
@@ -38,27 +59,7 @@ export class AuthService {
     return user;
   }
 
-  // En auth.service.ts
-getSupabaseClient() {
-  return this.supabase;
-}
-
-// Dentro de tu AuthService
-async getCuentas() {
-  const { data, error } = await this.supabase
-    .from('cuentas')
-    .select('*')
-    .order('nombre', { ascending: true });
-  if (error) throw error;
-  return data;
-}
-
-async crearCuenta(nombre: string, tipo: string) {
-  const user = await this.getCurrentUser();
-  const { data, error } = await this.supabase
-    .from('cuentas')
-    .insert([{ nombre, tipo, user_id: user?.id }]);
-  if (error) throw error;
-  return data;
-}
+  getSupabaseClient() {
+    return this.supabase;
+  }
 }

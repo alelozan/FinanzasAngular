@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -17,19 +18,19 @@ export class LoginComponent {
   loading = false;
 
   constructor(
-    private authService: AuthService, 
-    private router: Router
+    private authService: AuthService,
+    private router: Router,
+    private toast: ToastService
   ) {}
 
   async onLogin() {
     this.loading = true;
     try {
       await this.authService.signIn(this.email, this.password);
-      // Una vez logueado, vamos al dashboard
-      alert('Inicio de sesión exitoso');
+      this.toast.success('Inicio de sesión exitoso');
       this.router.navigate(['/dashboard']);
     } catch (error: any) {
-      alert('Error de inicio de sesión: ' + error.message);
+      this.toast.error('Error de inicio de sesión: ' + (error.message || 'Credenciales incorrectas'));
     } finally {
       this.loading = false;
     }

@@ -1,124 +1,163 @@
-<div class="dashboard-wrapper">
-  <nav class="top-nav">
-    <div class="nav-container">
-      <div class="logo">💰 FinanzasPro</div>
-      <div class="user-area">
-        <select class="account-selector" [(ngModel)]="cuentaSeleccionadaId" (change)="cargarMovimientos()">
-          <option [value]="null">🌍 Todas las cuentas</option>
-          <option *ngFor="let c of cuentas" [value]="c.id">🏦 {{ c.nombre }}</option>
-        </select>
-        <button (click)="logout()" class="btn-logout">Salir</button>
-      </div>
-    </div>
-  </nav>
-
-  <div class="main-content">
-    <details class="card quick-add">
-      <summary>🚀 Nuevo Movimiento Rápido</summary>
-      <div class="quick-add-grid">
-        <div class="f-field"><label>Cuenta</label>
-          <select [(ngModel)]="movimientoSeleccionado.cuenta_id">
-            <option *ngFor="let c of cuentas" [value]="c.id">{{ c.nombre }}</option>
-          </select>
-        </div>
-        <div class="f-field"><label>Fecha</label><input type="date" [(ngModel)]="movimientoSeleccionado.fecha"></div>
-        <div class="f-field"><label>Concepto</label><input type="text" [(ngModel)]="movimientoSeleccionado.concepto"></div>
-        <div class="f-field"><label>Importe</label><input type="number" [(ngModel)]="movimientoSeleccionado.importe"></div>
-        <div class="f-field"><label>Categoría</label>
-          <select [(ngModel)]="movimientoSeleccionado.categoria_id">
-            <option [value]="null">General</option>
-            <option *ngFor="let cat of categoriasDB" [value]="cat.id">{{ cat.nombre }}</option>
-          </select>
-        </div>
-        <button class="btn-primary" (click)="guardarMovimientoRapido()">Guardar</button>
-      </div>
-    </details>
-
-    <div class="charts-grid">
-      <div class="card"><h3>Tendencia Reciente</h3><canvas #barChart></canvas></div>
-      <div class="card"><h3>Gastos por Categoría</h3><canvas #pieChart></canvas></div>
-    </div>
-
-    <div class="management-grid">
-      <div class="card">
-        <h3>🏦 Mis Cuentas</h3>
-        <div class="input-group"><input type="text" [(ngModel)]="nuevaCuentaNombre" placeholder="Nueva..."><button (click)="crearCuenta()">+</button></div>
-        <div class="pill-list"><span class="pill" *ngFor="let c of cuentas">{{ c.nombre }} <b (click)="eliminarCuenta(c.id)">✕</b></span></div>
-      </div>
-      <div class="card">
-        <h3>🏷️ Mis Categorías</h3>
-        <div class="input-group"><input type="text" [(ngModel)]="nuevaCategoriaNombre" placeholder="Nueva..."><button (click)="crearCategoria()">+</button></div>
-        <div class="pill-list"><span class="pill" *ngFor="let cat of categoriasDB">{{ cat.nombre }} <b (click)="eliminarCategoria(cat.id)">✕</b></span></div>
-      </div>
-    </div>
-
-    <div class="card filters-panel">
-      <h3>🔍 Filtros de Búsqueda</h3>
-      <div class="filters-grid">
-        <div class="f-field"><label>Concepto</label><input type="text" [(ngModel)]="filtros.concepto" (input)="aplicarFiltros()"></div>
-        <div class="f-field"><label>Categoría</label>
-          <select [(ngModel)]="filtros.categoria" (change)="aplicarFiltros()">
-            <option value="">Todas</option>
-            <option *ngFor="let cat of categoriasDB" [value]="cat.id">{{ cat.nombre }}</option>
-          </select>
-        </div>
-        <div class="f-field"><label>Tipo</label>
-          <select [(ngModel)]="filtros.tipo" (change)="aplicarFiltros()">
-            <option value="">Todos</option><option value="ingreso">Ingresos</option><option value="gasto">Gastos</option>
-          </select>
-        </div>
-        <div class="f-field"><label>Importe Máx €</label><input type="number" [(ngModel)]="filtros.maxPrecio" (input)="aplicarFiltros()"></div>
-      </div>
-      <button class="btn-text" (click)="limpiarFiltros()">Limpiar Filtros</button>
-    </div>
-
-    <div class="card table-card">
-      <div class="header-table">
-        <label for="csv-upload" class="btn-outline">📥 Importar CSV Imagin</label>
-        <input type="file" (change)="onFileSelected($event)" accept=".csv" id="csv-upload" hidden>
-      </div>
-      <table>
-        <thead><tr><th>Fecha</th><th>Cuenta</th><th>Concepto</th><th>Categoría</th><th class="text-right">Importe</th><th></th></tr></thead>
-        <tbody>
-          <tr *ngFor="let m of movimientosFiltrados">
-            <td>{{ m.fecha | date:'dd/MM/yyyy' }}</td>
-            <td><span class="badge-account">{{ m.cuentas?.nombre }}</span></td>
-            <td>{{ m.concepto }}</td>
-            <td><span class="badge">{{ m.categorias?.nombre || 'General' }}</span></td>
-            <td class="text-right" [ngClass]="m.importe > 0 ? 'text-success' : 'text-danger'"><strong>{{ m.importe | number:'1.2-2' }}€</strong></td>
-            <td><button (click)="abrirEditor(m)" class="btn-icon">✏️</button></td>
-          </tr>
-        </tbody>
-      </table>
+<div class="modal-overlay" *ngIf="mostrarModalPrimeraCuenta">
+  <div class="modal-primera-cuenta">
+    <div class="modal-icon">$</div>
+    <h2>Bienvenido a FinanzasPro</h2>
+    <p>Para empezar, crea tu primera cuenta bancaria</p>
+    <div class="modal-input-group">
+      <input
+        type="text"
+        [(ngModel)]="nombrePrimeraCuenta"
+        placeholder="Ej: Banco Sabadell, Efectivo..."
+        (keydown.enter)="crearPrimeraCuenta()"
+        autofocus
+      >
+      <button (click)="crearPrimeraCuenta()" [disabled]="!nombrePrimeraCuenta.trim()">Crear cuenta</button>
     </div>
   </div>
 </div>
 
-<div class="overlay" [class.visible]="mostrarImportadorCSV">
-  <div class="modal">
-    <h3>📥 Selecciona cuenta destino</h3>
-    <select [(ngModel)]="cuentaParaCSV" class="full-select">
-      <option *ngFor="let c of cuentas" [value]="c.id">{{ c.nombre }}</option>
-    </select>
-    <button class="btn-primary full" (click)="procesarCSV()">Importar Datos</button>
-    <button class="btn-text full" (click)="mostrarImportadorCSV = false">Cancelar</button>
+<div class="modal-overlay" *ngIf="mostrarModalInvitaciones">
+  <div class="modal-invitaciones">
+    <h3>Invitaciones pendientes</h3>
+    <p class="inv-desc">Tienes cuentas compartidas esperando tu respuesta</p>
+    <div class="inv-list">
+      <div *ngFor="let inv of invitacionesPendientes" class="inv-item">
+        <div class="inv-info">
+          <span class="inv-account">{{ inv.cuentas?.nombre }}</span>
+          <span class="inv-email">{{ inv.invitado_email }}</span>
+        </div>
+        <div class="inv-actions">
+          <button class="btn-accept" (click)="onAceptarInvitacion(inv)">Aceptar</button>
+          <button class="btn-reject" (click)="onRechazarInvitacion(inv)">Rechazar</button>
+        </div>
+      </div>
+      <div *ngIf="invitacionesPendientes.length === 0" class="inv-empty">No hay invitaciones pendientes</div>
+    </div>
+    <button class="btn-text" (click)="mostrarModalInvitaciones = false">Cerrar</button>
   </div>
 </div>
 
-<div class="overlay" [class.visible]="mostrarEditor" (click)="mostrarEditor = false"></div>
-<div class="sidenav" [class.open]="mostrarEditor">
-  <h3>Editar Registro</h3>
-  <div class="sidenav-content" *ngIf="movimientoSeleccionado">
-    <div class="field"><label>Fecha</label><input type="date" [(ngModel)]="movimientoSeleccionado.fecha"></div>
-    <div class="field"><label>Concepto</label><input type="text" [(ngModel)]="movimientoSeleccionado.concepto"></div>
-    <div class="field"><label>Importe</label><input type="number" [(ngModel)]="movimientoSeleccionado.importe"></div>
-    <div class="field"><label>Categoría</label>
-      <select [(ngModel)]="movimientoSeleccionado.categoria_id">
-        <option [value]="null">General</option>
-        <option *ngFor="let cat of categoriasDB" [value]="cat.id">{{ cat.nombre }}</option>
-      </select>
-    </div>
-    <button class="btn-primary full" (click)="guardarEdicion()">Guardar</button>
-    <button class="btn-danger-outline full" (click)="eliminarMovimiento()">Eliminar</button>
+<div class="dashboard-wrapper" *ngIf="!mostrarModalPrimeraCuenta">
+  <app-account-selector
+    [cuentas]="cuentas"
+    [cuentasSeleccionadas]="cuentasSeleccionadas"
+    (logout)="logout()">
+  </app-account-selector>
+
+  <div class="dashboard-layout">
+    <aside class="sidebar">
+      <app-account-manager
+        [cuentas]="cuentas"
+        [cuentasSeleccionadas]="cuentasSeleccionadas"
+        (cuentaCreada)="onCuentaCreada($event)"
+        (cuentaActualizada)="onCuentaActualizada($event)"
+        (cuentaEliminada)="onCuentaEliminada($event)"
+        (cuentasSeleccionadasChange)="onCuentasSeleccionadas($event)"
+        (compartirCuenta)="onCompartirCuenta($event)">
+      </app-account-manager>
+
+      <hr class="sidebar-divider">
+
+      <app-sidebar-categoria
+        [categorias]="categoriasDB"
+        (onNuevaCategoria)="onNuevaCategoria($event)"
+        (onUpdateCategoria)="onUpdateCategoria($event)"
+        (onDeleteCategoria)="onDeleteCategoria($event)">
+      </app-sidebar-categoria>
+    </aside>
+
+    <main class="main-content">
+      <app-monthly-summary [movimientos]="movimientosActivos" [saldoInicial]="saldoInicialSeleccionado"></app-monthly-summary>
+
+      <app-movement-form
+        [cuentas]="cuentas"
+        [categoriasPorCuenta]="categoriasPorCuenta"
+        (movimientoGuardado)="onMovimientoGuardado($event)">
+      </app-movement-form>
+
+      <div class="charts-grid">
+        <div class="chart-full">
+          <app-bar-chart [movimientos]="movimientosDB" (mesClick)="onMesClick($event)"></app-bar-chart>
+        </div>
+        <app-pie-chart
+          [movimientos]="movimientosActivos"
+          tipo="gasto"
+          titulo="Gastos por Categoría"
+          (categoriaClick)="onCategoriaChartClick($event)">
+        </app-pie-chart>
+        <app-pie-chart
+          [movimientos]="movimientosActivos"
+          tipo="ingreso"
+          titulo="Ingresos por Categoría"
+          (categoriaClick)="onCategoriaChartClick($event)">
+        </app-pie-chart>
+      </div>
+
+
+
+      <app-smart-categorizer
+        [cuentas]="cuentas"
+        [categoriasPorCuenta]="categoriasPorCuenta"
+        (actualizado)="cargarMovimientos()">
+      </app-smart-categorizer>
+
+      <app-filter-panel
+        [filtros]="filtros"
+        [categorias]="categoriasFiltro"
+        [filtroCategoriaDesdeGrafico]="filtroCategoriaDesdeGrafico"
+        (filtrosChange)="onFiltrosChange($event)"
+        (limpiarFiltrosEvt)="onLimpiarFiltros()">
+      </app-filter-panel>
+
+      <div class="card table-card">
+        <div class="header-table">
+          <div class="header-actions">
+            <app-csv-importer
+              [cuentas]="cuentas"
+              (importacionCompleta)="onImportacionCompleta()">
+            </app-csv-importer>
+          </div>
+          <div class="quick-filters">
+            <button class="qf-btn" [class.active]="filtroRapido === '7d'" (click)="aplicarFiltroRapido('7d')">Últimos 7 días</button>
+            <button class="qf-btn" [class.active]="filtroRapido === 'semana'" (click)="aplicarFiltroRapido('semana')">Esta Semana</button>
+            <button class="qf-btn" [class.active]="filtroRapido === 'mes'" (click)="aplicarFiltroRapido('mes')">Este Mes</button>
+            <button class="qf-btn" [class.active]="filtroRapido === '3m'" (click)="aplicarFiltroRapido('3m')">Últimos 3 Meses</button>
+            <button class="qf-btn" [class.active]="filtroRapido === 'anio'" (click)="aplicarFiltroRapido('anio')">Este Año</button>
+            <button class="qf-btn qf-clear" *ngIf="filtroRapido" (click)="limpiarFiltroRapido()">Limpiar</button>
+          </div>
+        </div>
+        <app-movements-table
+          [movimientos]="movimientosFiltrados"
+          [categoriasPorCuenta]="categoriasPorCuenta"
+          (editar)="onEditarMovimiento($event)"
+          (onCambiarCategoriaMovimiento)="onCambiarCategoriaMovimiento($event)"
+          (onActualizarDescripcion)="onActualizarDescripcion($event)">
+        </app-movements-table>
+      </div>
+    </main>
   </div>
 </div>
+
+<button class="scroll-top-btn" *ngIf="mostrarScrollTop" (click)="scrollToTop()" title="Volver arriba">&#8593;</button>
+
+<div class="modal-overlay" *ngIf="mostrarModalLogout">
+  <div class="modal-logout">
+    <h3>¿Cerrar sesión?</h3>
+    <p>¿Quieres cerrar sesión y salir o mantenerte en la cuenta?</p>
+    <div class="modal-logout-actions">
+      <button class="btn-stay" (click)="mostrarModalLogout = false">Mantenerme</button>
+      <button class="btn-confirm-logout" (click)="confirmarLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+</div>
+
+<app-movement-editor
+  [movimiento]="movimientoAEditar"
+  [categoriasPorCuenta]="categoriasPorCuenta"
+  [movimientos]="movimientosDB"
+  (guardado)="onEdicionGuardada($event)"
+  (eliminado)="onMovimientoEliminado($event)"
+  (cerrar)="onCerrarEditor()"
+  (conciliarMovimiento)="onConciliarMovimiento($event)"
+  (desconciliarMovimiento)="onDesconciliarMovimiento($event)">
+</app-movement-editor>

@@ -1,0 +1,22 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "https://vfkdoizfokljhiptdukl.supabase.co/rest/v1/" \
+            -H "apikey: sb_publishable_JWUtP_rG5CY--IlNSMqTRw_IdCoarHM" \
+            -H "Authorization: Bearer sb_publishable_JWUtP_rG5CY--IlNSMqTRw_IdCoarHM")
+          echo "HTTP status: ${code}"
+          if [ "${code}" -ge 400 ]; then
+            echo "::warning::Supabase responded with ${code}"
+            exit 1
+          fi
