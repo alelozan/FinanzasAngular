@@ -3,15 +3,19 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { MovementsService } from '../../services/movements.service';
+import { MovementsService, movimientoKey } from '../../services/movements.service';
 import { AccountsService } from '../../services/accounts.service';
 import { CategoriesService } from '../../services/categories.service';
 import { ConciliacionesService } from '../../services/conciliaciones.service';
+import { ApartadosService } from '../../services/apartados.service';
+import { MetasAhorroService } from '../../services/metas-ahorro.service';
 import { ToastService } from '../../services/toast.service';
 import { Movement } from '../../models/movement.model';
 import { Account } from '../../models/account.model';
 import { Category } from '../../models/category.model';
 import { Conciliacion } from '../../models/conciliacion.model';
+import { Apartado, ApartadoCategoria } from '../../models/apartado.model';
+import { MetaAhorro } from '../../models/meta-ahorro.model';
 import { FilterValues } from './filter-panel/filter-panel.component';
 
 import { AccountSelectorComponent } from './account-selector/account-selector.component';
@@ -27,6 +31,8 @@ import { CsvImporterComponent } from './csv-importer/csv-importer.component';
 import { MovementEditorComponent } from './movement-editor/movement-editor.component';
 import { MonthlySummaryComponent } from './monthly-summary/monthly-summary.component';
 import { SmartCategorizerComponent } from './smart-categorizer/smart-categorizer.component';
+import { BudgetViewComponent } from './budget-view/budget-view.component';
+import { ApartadoManagerComponent } from './apartado-manager/apartado-manager.component';
 import { ToastComponent } from '../toast/toast.component';
 
 @Component({
@@ -47,6 +53,8 @@ import { ToastComponent } from '../toast/toast.component';
     MovementEditorComponent,
     MonthlySummaryComponent,
     SmartCategorizerComponent,
+    BudgetViewComponent,
+    ApartadoManagerComponent,
     ToastComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -62,6 +70,9 @@ export class DashboardComponent implements OnInit {
   conciliacionesSet: Set<string> = new Set();
   conciliacionesPorMovimiento: Map<string, Conciliacion[]> = new Map();
   movimientosActivos: Movement[] = [];
+  apartados: Apartado[] = [];
+  apartadoCategorias: ApartadoCategoria[] = [];
+  metas: MetaAhorro[] = [];
   cuentas: Account[] = [];
   userEmail = '';
   cuentasSeleccionadas: number[] = [];
@@ -73,6 +84,7 @@ export class DashboardComponent implements OnInit {
   mostrarScrollTop = false;
   mostrarModalLogout = false;
   mostrarModalInvitaciones = false;
+  mostrarModalPresupuesto = false;
   invitacionesPendientes: any[] = [];
   filtroCategoriaDesdeGrafico: string | null = null;
 
@@ -82,6 +94,8 @@ export class DashboardComponent implements OnInit {
     private accountsService: AccountsService,
     private categoriesService: CategoriesService,
     private conciliacionesService: ConciliacionesService,
+    private apartadosService: ApartadosService,
+    private metasAhorroService: MetasAhorroService,
     private toast: ToastService,
     private router: Router
   ) {}
@@ -113,9 +127,22 @@ export class DashboardComponent implements OnInit {
     }
     await this.cargarCategorias();
     await this.cargarConciliaciones();
+    await this.cargarPresupuesto();
     this.cuentasSeleccionadas = this.cuentas.map(c => c.id!);
     await this.cargarMovimientos();
     await this.cargarInvitaciones();
+  }
+
+  async cargarPresupuesto() {
+    try {
+      this.apartados = await this.apartadosService.getAll();
+      this.apartadoCategorias = await this.apartadosService.getVinculos();
+      this.metas = await this.metasAhorroService.getAll();
+    } catch (e: any) {
+      this.apartados = [];
+      this.apartadoCategorias = [];
+      this.metas = [];
+    }
   }
 
   async cargarCategorias() {
@@ -234,6 +261,12 @@ export class DashboardComponent implements OnInit {
   }
 
   async onMovimientoGuardado(mov: Partial<Movement>) {
+    const existentes = await this.movementsService.getIdentidades(mov.cuenta_id ?? null);
+    const claves = new Set(existentes.map(e => movimientoKey(e)));
+    if (claves.has(movimientoKey(mov))) {
+      this.toast.warning('Movimiento duplicado, no se ha añadido');
+      return;
+    }
     await this.movementsService.create(mov);
     this.toast.success('Movimiento guardado');
     await this.cargarMovimientos();
@@ -440,6 +473,14 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
+  abrirModalPresupuesto() {
+    this.mostrarModalPresupuesto = true;
+  }
+
+  cerrarModalPresupuesto() {
+    this.mostrarModalPresupuesto = false;
+  }
+
   onEditarMovimiento(mov: Movement) {
     this.movimientoAEditar = mov;
   }
@@ -508,6 +549,64 @@ export class DashboardComponent implements OnInit {
 
   async onImportacionCompleta() {
     await this.cargarMovimientos();
+  }
+
+  async onApartadoCreado(event: { cuenta_id: number; nombre: string; color: string; importe: number }) {
+    await this.apartadosService.create(event);
+    this.toast.success('Apartado creado');
+    await this.cargarPresupuesto();
+  }
+
+  async onApartadoActualizado(event: { id: string; nombre: string; color: string; importe: number }) {
+    await this.apartadosService.update(event.id, {
+      nombre: event.nombre,
+      color: event.color,
+      importe: event.importe
+    });
+    this.toast.success('Apartado actualizado');
+    await this.cargarPresupuesto();
+  }
+
+  async onApartadoEliminado(id: string) {
+    await this.apartadosService.delete(id);
+    this.toast.info('Apartado eliminado');
+    await this.cargarPresupuesto();
+  }
+
+  async onApartadoImporteChange(event: { id: string; importe: number }) {
+    await this.apartadosService.update(event.id, { importe: event.importe });
+    await this.cargarPresupuesto();
+  }
+
+  async onMetaCreada(event: { cuenta_id: number; nombre: string; porcentaje: number }) {
+    await this.metasAhorroService.create(event);
+    this.toast.success('Meta de ahorro creada');
+    await this.cargarPresupuesto();
+  }
+
+  async onMetaActualizada(event: { id: string; nombre: string; porcentaje: number }) {
+    await this.metasAhorroService.update(event.id, {
+      nombre: event.nombre,
+      porcentaje: event.porcentaje
+    });
+    this.toast.success('Meta actualizada');
+    await this.cargarPresupuesto();
+  }
+
+  async onMetaEliminada(id: string) {
+    await this.metasAhorroService.delete(id);
+    this.toast.info('Meta eliminada');
+    await this.cargarPresupuesto();
+  }
+
+  async onMetaPorcentajeChange(event: { id: string; porcentaje: number }) {
+    await this.metasAhorroService.update(event.id, { porcentaje: event.porcentaje });
+    await this.cargarPresupuesto();
+  }
+
+  async onCategoriaAsignada(event: { cuenta_id: number; categoria_id: string; apartado_id: string | null }) {
+    await this.apartadosService.asignarCategoria(event.cuenta_id, event.categoria_id, event.apartado_id);
+    await this.cargarPresupuesto();
   }
 
   async logout() {

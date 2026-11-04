@@ -21,11 +21,14 @@ export interface FilterValues {
   imports: [CommonModule, FormsModule],
   template: `
     <div class="card filters-panel">
-      <div class="filters-header">
-        <h3>Filtros de Búsqueda</h3>
-        <button class="btn-clear" (click)="limpiar()">Limpiar</button>
+      <div class="filters-header" (click)="colapsado = !colapsado">
+        <div class="filters-title">
+          <span class="filters-chevron" [class.collapsed]="colapsado">&#9662;</span>
+          <h3>Filtros de Búsqueda</h3>
+        </div>
+        <button class="btn-clear" (click)="limpiar(); $event.stopPropagation()">Limpiar</button>
       </div>
-      <div class="filters-grid">
+      <div class="filters-grid" *ngIf="!colapsado">
         <div class="f-field">
           <label>Concepto</label>
           <input type="text" [value]="filtros.concepto" (input)="onConcepto($event)" placeholder="Buscar...">
@@ -122,7 +125,22 @@ export interface FilterValues {
       justify-content: space-between;
       align-items: center;
       margin-bottom: 1rem;
+      cursor: pointer;
+      user-select: none;
     }
+    .filters-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .filters-chevron {
+      display: inline-block;
+      transition: transform 0.2s;
+      color: #94a3b8;
+      font-size: 0.7rem;
+      line-height: 1;
+    }
+    .filters-chevron.collapsed { transform: rotate(-90deg); }
     .filters-header h3 {
       margin: 0;
       font-size: 0.85rem;
@@ -264,6 +282,8 @@ export class FilterPanelComponent {
   @Input() filtroCategoriaDesdeGrafico: string | null = null;
   @Output() filtrosChange = new EventEmitter<FilterValues>();
   @Output() limpiarFiltrosEvt = new EventEmitter<void>();
+
+  colapsado = false;
 
   incluye(id: string): boolean {
     return this.filtros.categoriasIncluir.includes(id);

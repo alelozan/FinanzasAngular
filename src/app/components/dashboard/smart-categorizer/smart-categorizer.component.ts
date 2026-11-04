@@ -23,11 +23,6 @@ import { ToastService } from '../../../services/toast.service';
       </div>
 
       <div class="smart-body" *ngIf="abierto">
-        <p class="smart-desc">
-          Asigna automáticamente una categoría a los movimientos cuyo concepto contenga un nombre.
-          Las reglas se aplican al importar un CSV en la cuenta correspondiente.
-        </p>
-
         <div class="f-field">
           <label>Cuenta</label>
           <select [(ngModel)]="cuentaSeleccionada" (change)="onCuentaChange()" class="smart-select">
@@ -116,48 +111,42 @@ import { ToastService } from '../../../services/toast.service';
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 1.5rem;
+      padding: 0.65rem 1rem;
       cursor: pointer;
       transition: background 0.15s;
     }
     .smart-header:hover { background: #f8fafc; }
-    .smart-header-left { display: flex; align-items: center; gap: 0.6rem; }
-    .smart-icon { font-size: 1.1rem; }
+    .smart-header-left { display: flex; align-items: center; gap: 0.5rem; }
+    .smart-icon { font-size: 0.95rem; }
     .smart-title {
       font-weight: 700;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
       color: #334155;
     }
     .smart-chevron {
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       color: #94a3b8;
       transition: transform 0.2s;
     }
     .smart-chevron.rotated { transform: rotate(180deg); }
     .smart-body {
-      padding: 0 1.5rem 1.5rem;
+      padding: 0 1rem 1rem;
       animation: fadeIn 0.2s ease-out;
     }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .smart-desc {
-      color: #64748b;
-      font-size: 0.82rem;
-      margin: 0 0 1rem;
-      line-height: 1.5;
-    }
-    .f-field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+    .f-field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
     .f-field label {
-      font-size: 0.7rem;
+      font-size: 0.66rem;
       font-weight: 700;
       color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .smart-input, .smart-select {
-      padding: 0.6rem 0.8rem;
+      padding: 0.45rem 0.6rem;
       border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 0.88rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
       transition: border-color 0.2s;
       background: #fff;
     }
@@ -165,19 +154,19 @@ import { ToastService } from '../../../services/toast.service';
       outline: none;
       border-color: #0ea5e9;
     }
-    .crear-regla { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
-    .crear-row { display: flex; gap: 0.5rem; }
+    .crear-regla { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .crear-row { display: flex; gap: 0.4rem; }
     .crear-row .smart-input { flex: 1; }
     .crear-row .smart-select { flex: 1; }
     .btn-primary {
       background: linear-gradient(135deg, #0ea5e9, #0284c7);
       color: white;
       border: none;
-      padding: 0.65rem 1.2rem;
-      border-radius: 10px;
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.88rem;
+      font-size: 0.8rem;
       box-shadow: 0 4px 12px rgba(14,165,233,0.25);
       transition: all 0.2s;
     }
@@ -187,16 +176,16 @@ import { ToastService } from '../../../services/toast.service';
     }
     .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .rules-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .rules-list { display: flex; flex-direction: column; gap: 0.35rem; }
     .rule-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 0.6rem;
+      gap: 0.4rem;
+      padding: 0.35rem 0.5rem;
       border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      border-radius: 8px;
       background: #f8fafc;
-      font-size: 0.84rem;
+      font-size: 0.78rem;
     }
     .rule-nombre {
       font-weight: 600;
@@ -204,14 +193,14 @@ import { ToastService } from '../../../services/toast.service';
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 160px;
+      max-width: 150px;
     }
     .rule-arrow { color: #94a3b8; flex-shrink: 0; }
     .rule-categoria {
-      padding: 0.15rem 0.5rem;
-      border-radius: 6px;
+      padding: 0.12rem 0.4rem;
+      border-radius: 5px;
       font-weight: 600;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       white-space: nowrap;
     }
     .rule-actions {

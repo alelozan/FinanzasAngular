@@ -5,6 +5,7 @@ import { AuthService } from '../../../services/auth.service';
 import { CategoriesService } from '../../../services/categories.service';
 import { CategoryPredictionService } from '../../../services/category-prediction.service';
 import { SmartCategorizationsService } from '../../../services/smart-categorizations.service';
+import { MovementsService, movimientoKey } from '../../../services/movements.service';
 import { ToastService } from '../../../services/toast.service';
 import { Account } from '../../../models/account.model';
 
@@ -80,10 +81,17 @@ function normalizarTexto(texto: string): string {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div>
+    <div
+      class="drop-zone"
+      [class.drag-over]="arrastrando"
+      (dragenter)="onDragEnter($event)"
+      (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)"
+      (drop)="onDrop($event)">
       <label for="csv-upload" class="btn-outline">
         <span class="btn-icon-csv">&#8682;</span> Importar CSV
       </label>
+      <span class="drop-hint" *ngIf="arrastrando">Suelta el CSV aquí</span>
       <input type="file" (change)="onFileSelected($event)" accept=".csv" id="csv-upload" hidden>
     </div>
 
@@ -121,6 +129,22 @@ function normalizarTexto(texto: string): string {
     }
     .btn-outline:hover { background: #f0f9ff; }
     .btn-icon-csv { font-size: 1rem; }
+    .drop-zone {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .drop-zone.drag-over .btn-outline {
+      background: #f0f9ff;
+      border-color: #0284c7;
+      box-shadow: 0 0 0 3px rgba(14,165,233,0.15);
+    }
+    .drop-hint {
+      font-size: 0.75rem;
+      color: #0284c7;
+      font-weight: 600;
+    }
     .overlay {
       position: fixed;
       inset: 0;
@@ -213,18 +237,60 @@ export class CsvImporterComponent {
   archivoCSV: File | null = null;
   cuentaParaCSV: number | null = null;
   procesando = false;
+  arrastrando = false;
+  private dragCounter = 0;
 
   constructor(
     private authService: AuthService,
     private categoriesService: CategoriesService,
     private predictionService: CategoryPredictionService,
     private smartService: SmartCategorizationsService,
+    private movementsService: MovementsService,
     private toast: ToastService
   ) {}
 
   onFileSelected(event: any) {
     this.archivoCSV = event.target.files[0];
     if (this.archivoCSV) this.mostrar = true;
+  }
+
+  onDragEnter(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragCounter++;
+    this.arrastrando = true;
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+  }
+
+  onDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragCounter--;
+    if (this.dragCounter <= 0) {
+      this.dragCounter = 0;
+      this.arrastrando = false;
+    }
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragCounter = 0;
+    this.arrastrando = false;
+
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      this.toast.error('Solo se admiten archivos CSV');
+      return;
+    }
+    this.archivoCSV = file;
+    this.mostrar = true;
   }
 
   cerrar() {
@@ -273,8 +339,28 @@ export class CsvImporterComponent {
         }
       }
 
-      let categorizadosPorReglas = 0;
+      const vistos = new Set<string>();
+      const unicos: any[] = [];
       for (const mov of nuevosMovimientos) {
+        const k = movimientoKey(mov);
+        if (vistos.has(k)) continue;
+        vistos.add(k);
+        unicos.push(mov);
+      }
+
+      const existentes = await this.movementsService.getIdentidades(Number(this.cuentaParaCSV));
+      const clavesExistentes = new Set(existentes.map(e => movimientoKey(e)));
+      const novedades = unicos.filter(m => !clavesExistentes.has(movimientoKey(m)));
+      const omitidos = nuevosMovimientos.length - novedades.length;
+
+      if (novedades.length === 0) {
+        this.procesando = false;
+        this.toast.info('No hay movimientos nuevos: todos ya existen en la cuenta');
+        return;
+      }
+
+      let categorizadosPorReglas = 0;
+      for (const mov of novedades) {
         const conceptoNorm = normalizarTexto(mov.concepto || '');
         for (const rule of rules) {
           if (rule.nombre && rule.categoria_id && conceptoNorm.includes(normalizarTexto(rule.nombre))) {
@@ -285,7 +371,7 @@ export class CsvImporterComponent {
         }
       }
 
-      const predicted = this.predictionService.bulkPredict(nuevosMovimientos, categories);
+      const predicted = this.predictionService.bulkPredict(novedades, categories);
 
       for (const m of predicted) {
         if (m.categoria_id) {
@@ -315,6 +401,7 @@ export class CsvImporterComponent {
       this.importacionCompleta.emit();
       this.toast.success(
         `${predicted.length} movimientos importados` +
+        (omitidos > 0 ? `, ${omitidos} omitidos por duplicados` : '') +
         (categorizadosPorReglas > 0 ? ` (${categorizadosPorReglas} categorizados por reglas)` : '')
       );
     } catch (e: any) {

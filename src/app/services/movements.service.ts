@@ -2,9 +2,45 @@ import { Injectable } from '@angular/core';
 import { AuthService } from './auth.service';
 import { Movement } from '../models/movement.model';
 
+export interface MovimientoIdentidad {
+  fecha: string;
+  concepto: string;
+  importe: number;
+  cuenta_id: number | null;
+}
+
+export function normalizarConcepto(texto: string): string {
+  return (texto || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function movimientoKey(m: {
+  fecha?: string;
+  concepto?: string;
+  importe?: number | null;
+  cuenta_id?: number | null;
+}): string {
+  return `${m.cuenta_id ?? ''}|${m.fecha ?? ''}|${Number(m.importe ?? 0)}|${normalizarConcepto(m.concepto || '')}`;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MovementsService {
   constructor(private authService: AuthService) {}
+
+  async getIdentidades(cuentaId?: number | null): Promise<MovimientoIdentidad[]> {
+    const user = await this.authService.getCurrentUser();
+    let query = this.authService.getSupabaseClient()
+      .from('movimientos')
+      .select('fecha, concepto, importe, cuenta_id')
+      .eq('user_id', user?.id);
+    if (cuentaId != null) query = query.eq('cuenta_id', cuentaId);
+    const { data } = await query;
+    return data || [];
+  }
 
   async getAll(cuentaIds?: number[] | null) {
     let query = this.authService.getSupabaseClient()

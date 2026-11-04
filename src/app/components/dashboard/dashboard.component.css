@@ -454,3 +454,29 @@
 }
 
 .btn-text:hover { color: #334155; }
+
+.modal-presupuesto {
+  background: #fff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  width: 520px;
+  max-width: 92vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 48px rgba(15,23,42,0.15);
+  animation: scaleIn 0.3s ease-out;
+}
+
+.modal-presupuesto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.modal-presupuesto-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-family: 'Space Grotesk', sans-serif;
+  color: #0f172a;
+}

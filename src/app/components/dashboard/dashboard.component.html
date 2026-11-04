@@ -69,11 +69,17 @@
     <main class="main-content">
       <app-monthly-summary [movimientos]="movimientosActivos" [saldoInicial]="saldoInicialSeleccionado"></app-monthly-summary>
 
-      <app-movement-form
+      <app-budget-view
         [cuentas]="cuentas"
-        [categoriasPorCuenta]="categoriasPorCuenta"
-        (movimientoGuardado)="onMovimientoGuardado($event)">
-      </app-movement-form>
+        [cuentasSeleccionadas]="cuentasSeleccionadas"
+        [movimientos]="movimientosDB"
+        [apartados]="apartados"
+        [apartadoCategorias]="apartadoCategorias"
+        [metas]="metas"
+        (apartadoImporteChange)="onApartadoImporteChange($event)"
+        (metaPorcentajeChange)="onMetaPorcentajeChange($event)"
+        (configurar)="abrirModalPresupuesto()">
+      </app-budget-view>
 
       <div class="charts-grid">
         <div class="chart-full">
@@ -108,6 +114,12 @@
         (filtrosChange)="onFiltrosChange($event)"
         (limpiarFiltrosEvt)="onLimpiarFiltros()">
       </app-filter-panel>
+
+      <app-movement-form
+        [cuentas]="cuentas"
+        [categoriasPorCuenta]="categoriasPorCuenta"
+        (movimientoGuardado)="onMovimientoGuardado($event)">
+      </app-movement-form>
 
       <div class="card table-card">
         <div class="header-table">
@@ -148,6 +160,29 @@
       <button class="btn-stay" (click)="mostrarModalLogout = false">Mantenerme</button>
       <button class="btn-confirm-logout" (click)="confirmarLogout()">Cerrar sesión</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" *ngIf="mostrarModalPresupuesto" (click)="cerrarModalPresupuesto()">
+  <div class="modal-presupuesto" (click)="$event.stopPropagation()">
+    <div class="modal-presupuesto-header">
+      <h3>Presupuesto</h3>
+      <button class="btn-text" (click)="cerrarModalPresupuesto()">Cerrar</button>
+    </div>
+    <app-apartado-manager
+      [cuentas]="cuentas"
+      [apartados]="apartados"
+      [apartadoCategorias]="apartadoCategorias"
+      [metas]="metas"
+      [categoriasPorCuenta]="categoriasPorCuenta"
+      (apartadoCreado)="onApartadoCreado($event)"
+      (apartadoActualizado)="onApartadoActualizado($event)"
+      (apartadoEliminado)="onApartadoEliminado($event)"
+      (metaCreada)="onMetaCreada($event)"
+      (metaActualizada)="onMetaActualizada($event)"
+      (metaEliminada)="onMetaEliminada($event)"
+      (categoriaAsignada)="onCategoriaAsignada($event)">
+    </app-apartado-manager>
   </div>
 </div>
 

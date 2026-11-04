@@ -29,22 +29,57 @@ import { Movement } from '../../../models/movement.model';
             <option *ngFor="let cat of categoriasDisponibles" [value]="cat.id">{{ cat.nombre }}</option>
           </select>
         </div>
-        <div class="field">
+
+        <div class="field concil-field">
           <label>Conciliación</label>
+          <p class="concil-explica">
+            Une este <strong>{{ esIngreso ? 'ingreso' : 'gasto' }}</strong> de
+            <strong>{{ editData.importe | number:'1.2-2' }} €</strong> con su movimiento contrario
+            ({{ esIngreso ? 'gasto' : 'ingreso' }}) para anularlos, p. ej. un reembolso o un anticipo.
+          </p>
+
           <div class="concil-list" *ngIf="conciliacionesActuales.length > 0">
             <div class="concil-item" *ngFor="let c of conciliacionesActuales">
-              <span class="concil-concepto">{{ conceptoContraparte(c) }}</span>
+              <div class="concil-item-info">
+                <span class="concil-tag">Vinculado con</span>
+                <span class="concil-concepto">{{ conceptoContraparte(c) }}</span>
+              </div>
               <button class="concil-unlink" (click)="desconciliar(c.id)" title="Desvincular">&times;</button>
             </div>
           </div>
-          <div class="concil-link-row">
-            <select [(ngModel)]="movimientoAConciliarId" class="concil-select">
-              <option [value]="null" disabled>Seleccionar movimiento...</option>
-              <option *ngFor="let m of movimientosConciliables" [value]="m.id">{{ m.concepto }} ({{ m.importe | number:'1.2-2' }} €)</option>
-            </select>
-            <button class="btn-conciliar" (click)="conciliar()" [disabled]="!movimientoAConciliarId">Conciliar</button>
+
+          <input
+            type="text"
+            [(ngModel)]="busquedaConcil"
+            placeholder="Buscar {{ esIngreso ? 'gasto' : 'ingreso' }} para vincular..."
+            class="concil-search">
+
+          <div class="concil-candidatos">
+            <div class="concil-candidato" *ngFor="let m of movimientosConciliablesFiltrados">
+              <span class="cand-tipo" [class.ingreso]="m.importe > 0" [class.gasto]="m.importe < 0">
+                {{ m.importe > 0 ? 'Ingreso' : 'Gasto' }}
+              </span>
+              <div class="cand-info">
+                <span class="cand-concepto">{{ m.concepto }}</span>
+                <span class="cand-meta">{{ formatearFecha(m.fecha) }} · {{ m.categorias?.nombre || 'Sin categoría' }}</span>
+              </div>
+              <span class="cand-importe" [class.ingreso]="m.importe > 0" [class.gasto]="m.importe < 0">
+                {{ m.importe | number:'1.2-2' }} €
+              </span>
+              <button class="btn-vincular" (click)="conciliarCon(m.id)">Vincular</button>
+            </div>
+
+            <div *ngIf="movimientosConciliables.length === 0" class="concil-vacio">
+              No hay {{ esIngreso ? 'gastos' : 'ingresos' }} en esta cuenta para vincular.
+            </div>
+            <div
+              *ngIf="movimientosConciliables.length > 0 && movimientosConciliablesFiltrados.length === 0"
+              class="concil-vacio">
+              Sin resultados para "{{ busquedaConcil }}".
+            </div>
           </div>
         </div>
+
         <button class="btn-primary full" (click)="guardar()">Guardar cambios</button>
         <button class="btn-danger-outline full" (click)="eliminar()">Eliminar</button>
       </div>
@@ -64,8 +99,8 @@ import { Movement } from '../../../models/movement.model';
     .sidenav {
       position: fixed;
       top: 0;
-      right: -400px;
-      width: 360px;
+      right: -440px;
+      width: 400px;
       height: 100%;
       background: #fff;
       z-index: 1001;
@@ -148,27 +183,56 @@ import { Movement } from '../../../models/movement.model';
     }
     .btn-danger-outline:hover { background: #fef2f2; }
     .full { width: 100%; }
+
+    .concil-field {
+      background: #f8fafb;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 0.9rem;
+    }
+    .concil-explica {
+      margin: 0 0 0.75rem;
+      font-size: 0.78rem;
+      color: #64748b;
+      line-height: 1.45;
+    }
+    .concil-explica strong { color: #334155; }
     .concil-list {
       display: flex;
       flex-direction: column;
       gap: 0.4rem;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.75rem;
     }
     .concil-item {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 0.5rem;
-      padding: 0.45rem 0.6rem;
+      padding: 0.5rem 0.6rem;
       background: #ede9fe;
       border-radius: 8px;
-      font-size: 0.82rem;
-      color: #5b21b6;
+      font-size: 0.8rem;
+    }
+    .concil-item-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .concil-tag {
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #7c3aed;
     }
     .concil-concepto {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      color: #5b21b6;
+      font-weight: 600;
     }
     .concil-unlink {
       background: none;
@@ -178,46 +242,98 @@ import { Movement } from '../../../models/movement.model';
       cursor: pointer;
       line-height: 1;
       padding: 0 0.2rem;
+      flex-shrink: 0;
     }
     .concil-unlink:hover { color: #6d28d9; }
-    .concil-link-row {
-      display: flex;
-      gap: 0.5rem;
-    }
-    .concil-select {
-      flex: 1;
-      min-width: 0;
-      padding: 0.6rem 0.7rem;
+
+    .concil-search {
+      width: 100%;
+      padding: 0.55rem 0.7rem;
       border: 1.5px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 0.85rem;
-      background: #fff;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      box-sizing: border-box;
       outline: none;
+      margin-bottom: 0.6rem;
+      background: #fff;
     }
-    .concil-select:focus { border-color: #8b5cf6; }
-    .btn-conciliar {
+    .concil-search:focus { border-color: #8b5cf6; }
+
+    .concil-candidatos {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 0.2rem;
+    }
+    .concil-candidato {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.6rem;
+      background: #fff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .concil-candidato:hover { border-color: #c4b5fd; background: #faf5ff; }
+    .cand-tipo {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      padding: 0.15rem 0.4rem;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+    .cand-tipo.ingreso { background: #d1fae5; color: #065f46; }
+    .cand-tipo.gasto { background: #fee2e2; color: #991b1b; }
+    .cand-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .cand-concepto {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #334155;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cand-meta { font-size: 0.7rem; color: #94a3b8; }
+    .cand-importe {
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+    .cand-importe.ingreso { color: #10b981; }
+    .cand-importe.gasto { color: #ef4444; }
+    .btn-vincular {
       background: #8b5cf6;
       color: white;
       border: none;
-      padding: 0.6rem 0.9rem;
-      border-radius: 10px;
+      padding: 0.35rem 0.6rem;
+      border-radius: 7px;
       cursor: pointer;
       font-weight: 600;
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       flex-shrink: 0;
-      transition: all 0.15s;
+      transition: background 0.15s;
     }
-    .btn-conciliar:hover:not(:disabled) { background: #7c3aed; }
-    .btn-conciliar:disabled { opacity: 0.5; cursor: not-allowed; }
-    .global-badge {
-      font-size: 0.55rem;
-      background: #ede9fe;
-      color: #7c3aed;
-      padding: 0.1rem 0.35rem;
-      border-radius: 4px;
-      font-weight: 700;
-      text-transform: uppercase;
-      margin-left: 0.3rem;
+    .btn-vincular:hover { background: #7c3aed; }
+    .concil-vacio {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      background: #fff;
+      border: 1.5px dashed #e2e8f0;
+      border-radius: 8px;
     }
   `]
 })
@@ -233,12 +349,12 @@ export class MovementEditorComponent implements OnChanges {
 
   editData: any = null;
   categoriasDisponibles: Category[] = [];
-  movimientoAConciliarId: string | null = null;
+  busquedaConcil = '';
 
   ngOnChanges() {
     if (this.movimiento) {
       this.editData = { ...this.movimiento };
-      this.movimientoAConciliarId = null;
+      this.busquedaConcil = '';
       this.filtrarCategorias();
     }
   }
@@ -250,6 +366,10 @@ export class MovementEditorComponent implements OnChanges {
     const cuentaId = this.editData.cuenta_id;
     const fuente = (cuentaId != null ? this.categoriasPorCuenta.get(cuentaId) : null) || [];
     this.categoriasDisponibles = fuente.filter(c => !c.tipo || c.tipo === tipo);
+  }
+
+  get esIngreso(): boolean {
+    return (this.editData?.importe ?? 0) > 0;
   }
 
   get conciliacionesActuales(): any[] {
@@ -272,19 +392,36 @@ export class MovementEditorComponent implements OnChanges {
     );
   }
 
+  get movimientosConciliablesFiltrados(): Movement[] {
+    const q = this.busquedaConcil.trim().toLowerCase();
+    if (!q) return this.movimientosConciliables;
+    return this.movimientosConciliables.filter(m =>
+      (m.concepto || '').toLowerCase().includes(q) ||
+      (m.descripcion || '').toLowerCase().includes(q) ||
+      (m.categorias?.nombre || '').toLowerCase().includes(q)
+    );
+  }
+
   conceptoContraparte(c: any): string {
     const id = c.gasto_id === this.editData?.id ? c.ingreso_id : c.gasto_id;
     const m = this.movimientos.find(x => x.id === id);
-    return m ? `${m.concepto} (${(m.importe ?? 0).toFixed(2)} €)` : '';
+    if (!m) return '';
+    return `${m.concepto} · ${(m.importe ?? 0).toFixed(2)} € · ${this.formatearFecha(m.fecha)}`;
   }
 
-  conciliar() {
-    if (!this.editData?.id || !this.movimientoAConciliarId) return;
+  formatearFecha(fecha?: string): string {
+    if (!fecha) return '';
+    const [y, m, d] = fecha.split('-');
+    if (!y || !m || !d) return fecha;
+    return `${d}/${m}/${y}`;
+  }
+
+  conciliarCon(id: string | undefined) {
+    if (!this.editData?.id || !id) return;
     const esGasto = (this.editData.importe ?? 0) < 0;
-    const gastoId = esGasto ? this.editData.id : this.movimientoAConciliarId;
-    const ingresoId = esGasto ? this.movimientoAConciliarId : this.editData.id;
+    const gastoId = esGasto ? this.editData.id : id;
+    const ingresoId = esGasto ? id : this.editData.id;
     this.conciliarMovimiento.emit({ gastoId, ingresoId });
-    this.movimientoAConciliarId = null;
   }
 
   desconciliar(conciliacionId: string) {

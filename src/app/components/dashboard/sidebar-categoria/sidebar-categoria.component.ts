@@ -8,11 +8,15 @@ import { FormsModule } from '@angular/forms';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="categorias-sidebar">
-      <div class="header">
-        <h3>Categorías</h3>
-        <button class="btn-add" (click)="toggleCrear()" title="Nueva categoría">+</button>
+      <div class="header" (click)="colapsado = !colapsado">
+        <div class="header-left">
+          <span class="header-chevron" [class.collapsed]="colapsado">&#9662;</span>
+          <h3>Categorías</h3>
+        </div>
+        <button class="btn-add" (click)="toggleCrear(); $event.stopPropagation()" title="Nueva categoría">+</button>
       </div>
 
+      <div class="categorias-body" *ngIf="!colapsado">
       <div *ngIf="mostrarCrear" class="crear-form">
         <input
           type="text"
@@ -49,7 +53,7 @@ import { FormsModule } from '@angular/forms';
         <button class="btn-confirm" (click)="confirmarCrear()" [disabled]="!nuevoNombre.trim()">Crear</button>
       </div>
 
-      <details class="grupo" open>
+      <details class="grupo">
         <summary class="grupo-header grupo-ingresos">
           <span class="grupo-dot dot-ingreso"></span>
           Ingresos
@@ -94,7 +98,7 @@ import { FormsModule } from '@angular/forms';
         </div>
       </details>
 
-      <details class="grupo" open>
+      <details class="grupo">
         <summary class="grupo-header grupo-gastos">
           <span class="grupo-dot dot-gasto"></span>
           Gastos
@@ -182,11 +186,15 @@ import { FormsModule } from '@angular/forms';
           </div>
         </div>
       </details>
+      </div>
     </div>
   `,
   styles: [`
     .categorias-sidebar { padding: 0; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; cursor: pointer; user-select: none; }
+    .header-left { display: flex; align-items: center; gap: 0.4rem; }
+    .header-chevron { display: inline-block; transition: transform 0.2s; color: #94a3b8; font-size: 0.7rem; line-height: 1; }
+    .header-chevron.collapsed { transform: rotate(-90deg); }
     .header h3 { margin: 0; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; }
     .btn-add {
       background: linear-gradient(135deg, #0ea5e9, #0284c7);
@@ -427,6 +435,7 @@ export class SidebarCategoriaComponent implements OnChanges {
   editTipo = 'gasto';
   editColor = '#0ea5e9';
   mostrarCrear = false;
+  colapsado = true;
   nuevoNombre = '';
   nuevoTipo = 'gasto';
   nuevoColor = '#0ea5e9';
@@ -440,6 +449,7 @@ export class SidebarCategoriaComponent implements OnChanges {
   toggleCrear() {
     this.mostrarCrear = !this.mostrarCrear;
     if (this.mostrarCrear) {
+      this.colapsado = false;
       this.nuevoNombre = '';
       this.nuevoTipo = 'gasto';
       this.nuevoColor = '#0ea5e9';
