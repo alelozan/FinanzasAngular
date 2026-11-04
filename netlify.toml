@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"
-  publish = "dist/finanzas-app"
+  publish = "dist/finanzas-app/browser"
 
 [[redirects]]
   from = "/*"
